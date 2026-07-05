@@ -1,5 +1,6 @@
 import Header from "./components/Header";
 import Hero from "./components/Hero";
+import Services from "./components/Services";
 import Trust from "./components/Trust";
 import Menu from "./components/Menu";
 import Events from "./components/Events";
@@ -13,6 +14,7 @@ export default function App() {
     <div className="min-h-screen">
       <Header />
       <Hero />
+      <Services />
       <Trust />
       <Menu />
       <Events />

@@ -14,8 +14,9 @@ export default function Trust() {
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-leaf mb-3">
           Antes de decidir dónde comer
         </p>
-        <h2 className="font-display text-2xl md:text-3xl font-semibold mb-10 max-w-xl">
-          Sabemos qué te preguntas antes de elegir un restaurante que no conoces.
+        <h2 className="font-display text-2xl md:text-4xl font-semibold mb-10 max-w-xl">
+          Sabemos qué te preguntas antes de elegir un restaurante que{" "}
+          <span className="italic text-leaf">no conoces</span>.
         </h2>
         <div className="grid sm:grid-cols-2 gap-x-8 gap-y-9">
           {doubts.map((d) => (

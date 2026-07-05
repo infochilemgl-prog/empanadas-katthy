@@ -1,9 +1,14 @@
 import Stamp from "./Stamp";
-import SectionWave from "./SectionWave";
+
+const badges = [
+  { icon: "📍", label: "Años en Limache" },
+  { icon: "🔁", label: "Clientes que vuelven" },
+  { icon: "📷", label: "Fotos reales, sin editar" },
+] as const;
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden pb-16 md:pb-20">
+    <section className="relative overflow-hidden pb-10 md:pb-14">
       <div
         aria-hidden="true"
         className="absolute -top-32 -right-40 w-[520px] h-[520px] rounded-full bg-leaf/25 blur-3xl"
@@ -22,10 +27,10 @@ export default function Hero() {
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-leaf mb-4">
             Restaurante familiar · Limache
           </p>
-          <h1 className="font-display text-4xl md:text-5xl font-semibold leading-[1.08] mb-5">
+          <h1 className="font-display text-4xl md:text-6xl font-semibold leading-[1.05] mb-5">
             Comida casera,
             <br />
-            <span className="text-leaf">como en casa.</span>
+            <span className="text-leaf italic">como en casa.</span>
           </h1>
           <p className="text-base md:text-lg text-charcoal/75 leading-relaxed mb-8 max-w-md">
             Comida casera abundante, atención cercana y el mismo sabor de siempre —
@@ -47,11 +52,17 @@ export default function Hero() {
             </a>
           </div>
 
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-charcoal/60">
-            <li>✓ Años funcionando en Limache</li>
-            <li>✓ Clientes que vuelven</li>
-            <li>✓ Fotos reales, sin editar</li>
-          </ul>
+          <div className="flex flex-wrap gap-2">
+            {badges.map((b) => (
+              <span
+                key={b.label}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/70 border border-charcoal/10 px-3 py-1.5 text-xs font-semibold text-charcoal/70"
+              >
+                <span aria-hidden="true">{b.icon}</span>
+                {b.label}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="relative flex justify-center md:justify-end">
@@ -74,8 +85,6 @@ export default function Hero() {
           </div>
         </div>
       </div>
-
-      <SectionWave fill="#141210" />
     </section>
   );
 }
