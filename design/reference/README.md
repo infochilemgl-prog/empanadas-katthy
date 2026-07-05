@@ -15,6 +15,13 @@ reutiliza de cada una para Empanadas Katty:
 - **tacos-saturated-palette-torn-paper.jpg** — paleta de color mostrada con
   fuerza y confianza (bloques, no líneas delgadas), tarjetas de producto con
   fondo de color sólido detrás de la foto recortada.
+- *(referencia de hamburguesería, no guardada como archivo)* — sistema de
+  bloque de color sólido a página completa alternado con secciones neutras,
+  titular bicolor (una palabra en el color de acento), grilla de icono +
+  etiqueta + descripción en 2 columnas. Se adoptó el **sistema de layout**;
+  se descartó el **tono literal** (rojo/marrón oscuro, estética fast-food
+  agresiva) porque contradice la tesis de marca ya confirmada: Empanadas
+  Katty es un restaurante familiar, no una cadena de comida rápida.
 
 ## Reglas al aplicar esto a Empanadas Katty
 

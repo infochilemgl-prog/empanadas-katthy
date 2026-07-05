@@ -13,7 +13,7 @@ export default function FinalCTA() {
         <div className="flex flex-wrap justify-center gap-3">
           <a
             href="https://wa.me/56900000000"
-            className="rounded-full bg-leaf text-charcoal px-6 py-3 text-sm font-semibold hover:bg-yolk transition-colors"
+            className="rounded-full bg-leaf text-charcoal px-6 py-3 text-sm font-semibold hover:bg-cream transition-colors"
           >
             Pedir por WhatsApp
           </a>
