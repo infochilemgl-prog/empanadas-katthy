@@ -1,3 +1,5 @@
+import SectionWave from "./SectionWave";
+
 const doubts = [
   { icon: "🍲", q: "¿Será rico?", a: "Recetas tradicionales, sin atajos, hechas todos los días.", chip: "leaf" },
   { icon: "🍽️", q: "¿Alcanzará para todos?", a: "Porciones abundantes — pensadas para compartir en familia.", chip: "cream" },
@@ -7,7 +9,7 @@ const doubts = [
 
 export default function Trust() {
   return (
-    <section className="bg-charcoal text-cream py-16">
+    <section className="relative bg-charcoal text-cream pt-16 pb-24 md:pb-28">
       <div className="max-w-6xl mx-auto px-5">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-leaf mb-3">
           Antes de decidir dónde comer
@@ -34,6 +36,7 @@ export default function Trust() {
           ))}
         </div>
       </div>
+      <SectionWave fill="#FBF8F0" />
     </section>
   );
 }

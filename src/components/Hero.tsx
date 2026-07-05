@@ -1,18 +1,23 @@
 import Stamp from "./Stamp";
+import SectionWave from "./SectionWave";
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden pb-16 md:pb-20">
       <div
         aria-hidden="true"
-        className="absolute -top-24 -right-24 w-[420px] h-[420px] rounded-full bg-leaf/25 blur-3xl"
+        className="absolute -top-32 -right-40 w-[520px] h-[520px] rounded-full bg-leaf/25 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="absolute top-1/2 -left-32 w-[320px] h-[320px] rounded-full bg-charcoal/10 blur-3xl"
+        className="absolute top-1/3 -left-40 w-[360px] h-[360px] rounded-full bg-charcoal/10 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute bottom-0 right-1/4 w-[220px] h-[220px] rounded-full bg-leaf/15 blur-2xl"
       />
 
-      <div className="relative max-w-6xl mx-auto px-5 pt-14 pb-20 grid md:grid-cols-2 gap-10 items-center">
+      <div className="relative max-w-6xl mx-auto px-5 pt-14 grid md:grid-cols-2 gap-14 items-center">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-leaf mb-4">
             Restaurante familiar · Limache
@@ -49,14 +54,28 @@ export default function Hero() {
           </ul>
         </div>
 
-        <div className="relative">
-          <div className="aspect-[4/3] rounded-[2rem] bg-charcoal/5 border-2 border-leaf/40 shadow-xl flex items-center justify-center text-charcoal/40 text-sm">
-            {/* Reemplazar por foto real del local/comida — nunca stock */}
-            [ Foto real: mesa servida en el local ]
+        <div className="relative flex justify-center md:justify-end">
+          <div className="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[400px] md:h-[400px]">
+            <div
+              aria-hidden="true"
+              className="absolute -inset-3 rounded-full border-2 border-dashed border-leaf/50"
+            />
+            <div className="absolute inset-0 rounded-full bg-charcoal/5 shadow-2xl flex items-center justify-center text-charcoal/40 text-sm text-center px-6 overflow-hidden">
+              {/* Reemplazar por foto real del local/comida, recortada en círculo — nunca stock */}
+              [ Foto real: plato servido, recortado en círculo ]
+            </div>
+            <span
+              aria-hidden="true"
+              className="absolute top-3 -right-2 w-9 h-9 rounded-full bg-leaf flex items-center justify-center text-charcoal text-base shadow-lg"
+            >
+              🌿
+            </span>
+            <Stamp className="absolute -bottom-4 -left-4 bg-cream shadow-lg" />
           </div>
-          <Stamp className="absolute -bottom-6 -left-6 bg-cream" />
         </div>
       </div>
+
+      <SectionWave fill="#141210" />
     </section>
   );
 }

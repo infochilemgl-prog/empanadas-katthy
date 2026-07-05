@@ -1,7 +1,13 @@
+import SectionWave from "./SectionWave";
+
 export default function Events() {
   return (
-    <section id="eventos" className="bg-leaf py-20">
-      <div className="max-w-6xl mx-auto px-5 grid md:grid-cols-2 gap-10 items-center">
+    <section id="eventos" className="relative bg-leaf pt-20 pb-28 md:pb-32 overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute -bottom-24 -left-24 w-[300px] h-[300px] rounded-full bg-charcoal/10 blur-3xl"
+      />
+      <div className="relative max-w-6xl mx-auto px-5 grid md:grid-cols-2 gap-10 items-center">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-charcoal/70 mb-3">
             Eventos y empresas
@@ -25,10 +31,17 @@ export default function Events() {
             Solicitar catering
           </a>
         </div>
-        <div className="aspect-[4/3] rounded-[2rem] bg-cream shadow-xl flex items-center justify-center text-charcoal/40 text-sm">
-          [ Foto real: catering de un evento anterior ]
+        <div className="relative mx-auto w-[240px] h-[240px] sm:w-[300px] sm:h-[300px]">
+          <div
+            aria-hidden="true"
+            className="absolute -inset-3 rounded-full border-2 border-dashed border-charcoal/25"
+          />
+          <div className="absolute inset-0 rounded-full bg-cream shadow-2xl flex items-center justify-center text-charcoal/40 text-xs text-center px-6">
+            [ Foto real: catering de un evento anterior ]
+          </div>
         </div>
       </div>
+      <SectionWave fill="#FBF8F0" />
     </section>
   );
 }
