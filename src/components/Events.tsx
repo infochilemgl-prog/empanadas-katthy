@@ -1,6 +1,6 @@
 export default function Events() {
   return (
-    <section id="eventos" className="bg-yolk/20 py-20">
+    <section id="eventos" className="bg-yolk/35 py-20">
       <div className="max-w-6xl mx-auto px-5 grid md:grid-cols-2 gap-10 items-center">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-charcoal/60 mb-3">
@@ -20,7 +20,7 @@ export default function Events() {
           </ul>
           <a
             href="https://wa.me/56900000000?text=Hola,%20quiero%20cotizar%20catering"
-            className="inline-block rounded-full bg-charcoal text-cream px-6 py-3 text-sm font-semibold hover:bg-leaf hover:text-charcoal transition-colors"
+            className="inline-block rounded-full bg-leaf text-charcoal px-6 py-3 text-sm font-bold hover:bg-charcoal hover:text-cream transition-colors"
           >
             Solicitar catering
           </a>

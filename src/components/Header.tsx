@@ -13,7 +13,7 @@ export default function Header() {
         </nav>
         <a
           href="https://wa.me/56900000000"
-          className="inline-flex items-center gap-2 rounded-full bg-charcoal text-cream px-4 py-2 text-sm font-semibold hover:bg-leaf hover:text-charcoal transition-colors"
+          className="inline-flex items-center gap-2 rounded-full bg-leaf text-charcoal px-4 py-2 text-sm font-bold hover:bg-yolk transition-colors"
         >
           WhatsApp
         </a>

@@ -1,8 +1,8 @@
 const items = [
-  { name: "Empanada de pino", desc: "La receta de siempre, relleno abundante.", price: "[PENDIENTE]" },
-  { name: "Menú del día", desc: "Cambia cada día, comida casera de olla.", price: "[PENDIENTE]" },
-  { name: "Caja familiar", desc: "Para compartir en casa o en una junta.", price: "[PENDIENTE]" },
-];
+  { name: "Empanada de pino", desc: "La receta de siempre, relleno abundante.", price: "[PENDIENTE]", accent: "leaf" },
+  { name: "Menú del día", desc: "Cambia cada día, comida casera de olla.", price: "[PENDIENTE]", accent: "yolk" },
+  { name: "Caja familiar", desc: "Para compartir en casa o en una junta.", price: "[PENDIENTE]", accent: "leaf" },
+] as const;
 
 export default function Menu() {
   return (
@@ -13,13 +13,26 @@ export default function Menu() {
       </h2>
       <div className="grid md:grid-cols-3 gap-6">
         {items.map((item) => (
-          <div key={item.name} className="rounded-2xl border border-charcoal/10 p-6 bg-white/40">
+          <div
+            key={item.name}
+            className="rounded-2xl border border-charcoal/10 p-6 bg-white/40 overflow-hidden relative"
+          >
+            <div
+              className={`absolute top-0 left-0 right-0 h-1.5 ${
+                item.accent === "leaf" ? "bg-leaf" : "bg-yolk"
+              }`}
+              aria-hidden="true"
+            />
             <div className="aspect-square rounded-xl bg-charcoal/5 mb-4 flex items-center justify-center text-xs text-charcoal/40">
               [ Foto real ]
             </div>
             <h3 className="font-display text-lg font-semibold mb-1">{item.name}</h3>
             <p className="text-sm text-charcoal/70 mb-3">{item.desc}</p>
-            <span className="inline-block rounded-full bg-yolk/30 px-3 py-1 text-sm font-semibold">
+            <span
+              className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${
+                item.accent === "leaf" ? "bg-leaf/30" : "bg-yolk/30"
+              }`}
+            >
               {item.price}
             </span>
           </div>

@@ -1,9 +1,9 @@
 const doubts = [
-  { q: "¿Será rico?", a: "Recetas tradicionales, sin atajos, hechas todos los días." },
-  { q: "¿Alcanzará para todos?", a: "Porciones abundantes — pensadas para compartir en familia." },
-  { q: "¿Las fotos serán antiguas?", a: "Lo que ves es lo que se sirve hoy. Nada de stock ni edición." },
-  { q: "¿Atenderán bien?", a: "El mismo equipo cercano de siempre — no es una cadena." },
-];
+  { q: "¿Será rico?", a: "Recetas tradicionales, sin atajos, hechas todos los días.", chip: "leaf" },
+  { q: "¿Alcanzará para todos?", a: "Porciones abundantes — pensadas para compartir en familia.", chip: "yolk" },
+  { q: "¿Las fotos serán antiguas?", a: "Lo que ves es lo que se sirve hoy. Nada de stock ni edición.", chip: "yolk" },
+  { q: "¿Atenderán bien?", a: "El mismo equipo cercano de siempre — no es una cadena.", chip: "leaf" },
+] as const;
 
 export default function Trust() {
   return (
@@ -17,9 +17,17 @@ export default function Trust() {
         </h2>
         <div className="grid md:grid-cols-2 gap-6">
           {doubts.map((d) => (
-            <div key={d.q} className="border-l-2 border-leaf pl-5 py-1">
-              <p className="text-cream/50 text-sm mb-1">{d.q}</p>
-              <p className="text-cream font-medium">{d.a}</p>
+            <div key={d.q} className="flex gap-4 items-start">
+              <span
+                className={`mt-1 w-3 h-3 rounded-full shrink-0 ${
+                  d.chip === "leaf" ? "bg-leaf" : "bg-yolk"
+                }`}
+                aria-hidden="true"
+              />
+              <div>
+                <p className="text-cream/50 text-sm mb-1">{d.q}</p>
+                <p className="text-cream font-medium">{d.a}</p>
+              </div>
             </div>
           ))}
         </div>
