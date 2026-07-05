@@ -19,7 +19,7 @@ export default function Reviews() {
 
       <div className="grid md:grid-cols-[2fr_1fr] gap-6 items-stretch">
         <div className="rounded-3xl border border-charcoal/10 bg-white/50 p-7 md:p-8">
-          <span className="font-display text-6xl text-leaf leading-none" aria-hidden="true">
+          <span className="font-display text-6xl text-terracotta leading-none" aria-hidden="true">
             "
           </span>
           <p className="font-display text-lg md:text-xl italic text-charcoal/80 leading-snug -mt-3 mb-6">
@@ -40,7 +40,7 @@ export default function Reviews() {
           </div>
         </div>
 
-        <div className="rounded-3xl bg-leaf p-7 flex flex-col justify-center gap-4">
+        <div className="rounded-3xl bg-mustard p-7 flex flex-col justify-center gap-4">
           <p className="text-sm text-charcoal/70 leading-relaxed">
             Nunca se inventa una reseña. Si todavía no hay suficientes reales,
             esta tarjeta se reemplaza por el widget en vivo de Google.

@@ -7,6 +7,8 @@ export default {
         charcoal: "#141210",
         cream: "#FBF8F0",
         leaf: "#2ED11E",
+        terracotta: "#C1502E",
+        mustard: "#D9A441",
       },
       fontFamily: {
         display: ["Fraunces", "serif"],

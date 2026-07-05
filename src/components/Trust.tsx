@@ -2,10 +2,17 @@ import SectionWave from "./SectionWave";
 
 const doubts = [
   { icon: "🍲", q: "¿Será rico?", a: "Recetas tradicionales, sin atajos, hechas todos los días.", chip: "leaf" },
-  { icon: "🍽️", q: "¿Alcanzará para todos?", a: "Porciones abundantes — pensadas para compartir en familia.", chip: "cream" },
-  { icon: "📷", q: "¿Las fotos serán antiguas?", a: "Lo que ves es lo que se sirve hoy. Nada de stock ni edición.", chip: "leaf" },
+  { icon: "🍽️", q: "¿Alcanzará para todos?", a: "Porciones abundantes — pensadas para compartir en familia.", chip: "mustard" },
+  { icon: "📷", q: "¿Las fotos serán antiguas?", a: "Lo que ves es lo que se sirve hoy. Nada de stock ni edición.", chip: "terracotta" },
   { icon: "🤝", q: "¿Atenderán bien?", a: "El mismo equipo cercano de siempre — no es una cadena.", chip: "cream" },
 ] as const;
+
+const chipBg: Record<(typeof doubts)[number]["chip"], string> = {
+  leaf: "bg-leaf",
+  mustard: "bg-mustard",
+  terracotta: "bg-terracotta",
+  cream: "bg-cream",
+};
 
 export default function Trust() {
   return (
@@ -22,9 +29,7 @@ export default function Trust() {
           {doubts.map((d) => (
             <div key={d.q} className="flex gap-4 items-start">
               <span
-                className={`flex items-center justify-center w-11 h-11 rounded-full text-lg shrink-0 ${
-                  d.chip === "leaf" ? "bg-leaf" : "bg-cream"
-                }`}
+                className={`flex items-center justify-center w-11 h-11 rounded-full text-lg shrink-0 ${chipBg[d.chip]}`}
                 aria-hidden="true"
               >
                 {d.icon}

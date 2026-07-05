@@ -23,12 +23,33 @@ reutiliza de cada una para Empanadas Katty:
   agresiva) porque contradice la tesis de marca ya confirmada: Empanadas
   Katty es un restaurante familiar, no una cadena de comida rápida.
 
+## Paleta (actualizada)
+
+Primaria — acción/marca (no toca sin aprobación):
+- `charcoal` `#141210`
+- `cream` `#FBF8F0`
+- `leaf` `#2ED11E` — color de acción: botones de CTA (Reservar, WhatsApp, precio "+").
+
+Secundaria — variedad de color entre secciones, inspirada en el nivel de
+audacia de las referencias pero en tonos cálidos/artesanales (no fast-food):
+- `terracotta` `#C1502E` — bloques grandes de sección (ej. Eventos), comilla
+  de cita en Reviews.
+- `mustard` `#D9A441` — chips/tags de producto, tarjetas de acento (ej.
+  callout de reseñas).
+
+Regla: el verde sigue siendo el único color de "acción" (todo botón que
+lleva a WhatsApp/reserva es verde) para que el ojo lo reconozca siempre
+igual. Terracota y mostaza son para variedad visual entre secciones y
+tags — nunca para un CTA.
+
 ## Reglas al aplicar esto a Empanadas Katty
 
-- La paleta de marca (`charcoal` `#141210`, `cream` `#FBF8F0`, `leaf` `#2ED11E`,
-  `yolk` `#E8D400`) es la que se usa con más audacia — no se reemplaza por el
-  turquesa/naranja de las referencias. Se toma el *nivel de confianza* con el
-  color, no los colores en sí.
+- Se toma el *nivel de confianza* con el color de las referencias — bloques
+  sólidos a página completa, no acentos tímidos — pero dentro de esta
+  paleta cálida propia, no el turquesa/rojo-fast-food literal de las
+  referencias.
 - Fotografía siempre real del local — nunca stock. El tratamiento "recortado
-  sobre fondo de color" se aplica a fotos reales cuando estén disponibles.
-- Nunca lorem ipsum ni testimonios inventados, aunque la referencia los use.
+  sobre fondo de color" (círculo, sin caja cuadrada) se aplica a fotos
+  reales cuando estén disponibles.
+- Nunca lorem ipsum ni testimonios/ratings inventados, aunque la referencia
+  los use — todo dato real pendiente queda marcado `[PENDIENTE]`.

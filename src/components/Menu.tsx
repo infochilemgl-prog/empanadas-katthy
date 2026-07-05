@@ -2,9 +2,15 @@ import SectionWave from "./SectionWave";
 
 const items = [
   { name: "Empanada de pino", desc: "La receta de siempre, relleno abundante.", price: "[PENDIENTE]", tag: "Favorita", accent: "leaf", featured: false },
-  { name: "Menú del día", desc: "Cambia cada día, comida casera de olla.", price: "[PENDIENTE]", tag: "Recomendado", accent: "charcoal", featured: true },
-  { name: "Caja familiar", desc: "Para compartir en casa o en una junta.", price: "[PENDIENTE]", tag: "Para compartir", accent: "leaf", featured: false },
+  { name: "Menú del día", desc: "Cambia cada día, comida casera de olla.", price: "[PENDIENTE]", tag: "Recomendado", accent: "mustard", featured: true },
+  { name: "Caja familiar", desc: "Para compartir en casa o en una junta.", price: "[PENDIENTE]", tag: "Para compartir", accent: "terracotta", featured: false },
 ] as const;
+
+const tagStyles: Record<(typeof items)[number]["accent"], string> = {
+  leaf: "bg-leaf/30 text-charcoal",
+  mustard: "bg-mustard text-charcoal",
+  terracotta: "bg-terracotta text-cream",
+};
 
 export default function Menu() {
   return (
@@ -26,9 +32,7 @@ export default function Menu() {
                 [ Foto real ]
               </div>
               <span
-                className={`inline-block rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide mb-3 ${
-                  item.accent === "leaf" ? "bg-leaf/30 text-charcoal" : "bg-charcoal text-cream"
-                }`}
+                className={`inline-block rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide mb-3 ${tagStyles[item.accent]}`}
               >
                 {item.tag}
               </span>
@@ -50,7 +54,7 @@ export default function Menu() {
           Precios pendientes de confirmar con el local — no se publica sin dato real.
         </p>
       </div>
-      <SectionWave fill="#2ED11E" />
+      <SectionWave fill="#C1502E" />
     </section>
   );
 }
