@@ -27,6 +27,12 @@ const limitadorPorNumero = rateLimit({
 router.post('/whatsapp', express.urlencoded({ extended: false }), limitadorPorNumero, async (req, res) => {
   // TODO: validar X-Twilio-Signature en producción
   try {
+    // Nos aseguramos de que la base esté migrada acá adentro (y no en un middleware global) para
+    // poder capturar cualquier falla de base de datos con el mismo try/catch que ya devuelve
+    // TwiML de fallback: el webhook SIEMPRE tiene que responder 200 y nunca hacer que Twilio
+    // reintente el mensaje.
+    await db.asegurarMigrado();
+
     const from = req.body && req.body.From;
     const body = req.body && req.body.Body;
 
@@ -38,20 +44,20 @@ router.post('/whatsapp', express.urlencoded({ extended: false }), limitadorPorNu
     const numeroTelefono = limpiarNumeroTelefono(from);
     const textoRecibido = String(body).slice(0, MAX_CARACTERES_ENTRADA);
 
-    db.prepare(
+    await db.query(
       `INSERT INTO mensajes_whatsapp (numero_telefono, contenido_mensaje, remitente, tipo_mensaje)
-       VALUES (?, ?, 'usuario', 'texto')`
-    ).run(numeroTelefono, textoRecibido);
+       VALUES ($1, $2, 'usuario', 'texto')`,
+      [numeroTelefono, textoRecibido]
+    );
 
-    const filasHistorial = db
-      .prepare(
-        `SELECT contenido_mensaje, remitente FROM mensajes_whatsapp
-         WHERE numero_telefono = ?
-         ORDER BY recibido_en DESC, id DESC
-         LIMIT ?`
-      )
-      .all(numeroTelefono, MENSAJES_DE_HISTORIAL)
-      .reverse();
+    const { rows: filasHistorialDesc } = await db.query(
+      `SELECT contenido_mensaje, remitente FROM mensajes_whatsapp
+       WHERE numero_telefono = $1
+       ORDER BY recibido_en DESC, id DESC
+       LIMIT $2`,
+      [numeroTelefono, MENSAJES_DE_HISTORIAL]
+    );
+    const filasHistorial = filasHistorialDesc.slice().reverse();
 
     const historial = filasHistorial.map((m) => ({
       role: m.remitente === 'agente' ? 'assistant' : 'user',
@@ -63,18 +69,25 @@ router.post('/whatsapp', express.urlencoded({ extended: false }), limitadorPorNu
       respuestaTexto = await generarRespuestaValentina(numeroTelefono, historial);
     } catch (err) {
       console.error('[webhook] Error llamando a OpenAI:', err.message);
-      const config = db.prepare('SELECT telefono FROM configuracion_restaurante ORDER BY id LIMIT 1').get();
-      const telefono = (config && config.telefono) || 'el restaurante';
+      let telefono = 'el restaurante';
+      try {
+        const { rows } = await db.query('SELECT telefono FROM configuracion_restaurante ORDER BY id LIMIT 1');
+        if (rows[0] && rows[0].telefono) telefono = rows[0].telefono;
+      } catch (e) {
+        // ignorar, ya estamos en el peor caso
+      }
       respuestaTexto = `Disculpá, tuve un problema técnico en este momento. Por favor llamá directamente al ${telefono} para hacer tu reserva. 🙏`;
     }
 
-    db.prepare(
+    await db.query(
       `INSERT INTO mensajes_whatsapp (numero_telefono, contenido_mensaje, remitente, tipo_mensaje, procesado)
-       VALUES (?, ?, 'agente', 'texto', 1)`
-    ).run(numeroTelefono, respuestaTexto);
+       VALUES ($1, $2, 'agente', 'texto', 1)`,
+      [numeroTelefono, respuestaTexto]
+    );
 
-    db.prepare(`UPDATE mensajes_whatsapp SET procesado = 1 WHERE numero_telefono = ? AND remitente = 'usuario' AND procesado = 0`).run(
-      numeroTelefono
+    await db.query(
+      `UPDATE mensajes_whatsapp SET procesado = 1 WHERE numero_telefono = $1 AND remitente = 'usuario' AND procesado = 0`,
+      [numeroTelefono]
     );
 
     res.set('Content-Type', 'text/xml');
@@ -83,8 +96,8 @@ router.post('/whatsapp', express.urlencoded({ extended: false }), limitadorPorNu
     console.error('[webhook] Error inesperado en el webhook de WhatsApp:', err);
     let telefono = 'el restaurante';
     try {
-      const config = db.prepare('SELECT telefono FROM configuracion_restaurante ORDER BY id LIMIT 1').get();
-      if (config && config.telefono) telefono = config.telefono;
+      const { rows } = await db.query('SELECT telefono FROM configuracion_restaurante ORDER BY id LIMIT 1');
+      if (rows[0] && rows[0].telefono) telefono = rows[0].telefono;
     } catch (e) {
       // ignorar, ya estamos en el peor caso
     }

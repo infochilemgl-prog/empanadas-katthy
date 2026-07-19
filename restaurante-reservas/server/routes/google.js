@@ -59,16 +59,17 @@ router.get('/callback', async (req, res) => {
     const { data: infoUsuario } = await oauth2.userinfo.get();
 
     // Upsert: borramos cualquier fila previa e insertamos la nueva (una sola cuenta conectada a la vez).
-    db.prepare('DELETE FROM google_oauth').run();
-    db.prepare(
+    await db.query('DELETE FROM google_oauth');
+    await db.query(
       `INSERT INTO google_oauth (access_token, refresh_token, expiry_date, scope, email_cuenta, calendar_id)
-       VALUES (?, ?, ?, ?, ?, 'primary')`
-    ).run(
-      tokens.access_token || null,
-      tokens.refresh_token || null,
-      tokens.expiry_date || null,
-      tokens.scope || null,
-      infoUsuario.email || null
+       VALUES ($1, $2, $3, $4, $5, 'primary')`,
+      [
+        tokens.access_token || null,
+        tokens.refresh_token || null,
+        tokens.expiry_date || null,
+        tokens.scope || null,
+        infoUsuario.email || null,
+      ]
     );
 
     console.log(`[google] Cuenta de Google Calendar conectada: ${infoUsuario.email}`);
@@ -89,9 +90,10 @@ router.get('/callback', async (req, res) => {
 });
 
 /** GET /api/google/status */
-router.get('/status', (req, res) => {
+router.get('/status', async (req, res) => {
   try {
-    const fila = db.prepare('SELECT * FROM google_oauth ORDER BY id DESC LIMIT 1').get();
+    const { rows } = await db.query('SELECT * FROM google_oauth ORDER BY id DESC LIMIT 1');
+    const fila = rows[0];
     if (!fila) {
       return res.json({ conectado: false, email_cuenta: null, calendar_id: null, conectado_en: null });
     }
@@ -108,9 +110,9 @@ router.get('/status', (req, res) => {
 });
 
 /** POST /api/google/disconnect */
-router.post('/disconnect', (req, res) => {
+router.post('/disconnect', async (req, res) => {
   try {
-    db.prepare('DELETE FROM google_oauth').run();
+    await db.query('DELETE FROM google_oauth');
     res.json({ desconectado: true });
   } catch (err) {
     console.error('[google] Error desconectando:', err);

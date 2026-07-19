@@ -31,8 +31,9 @@ function log(...args) {
   console.log(`[${new Date().toISOString()}]`, ...args);
 }
 
-function obtenerConfig() {
-  return db.prepare('SELECT * FROM configuracion_restaurante ORDER BY id LIMIT 1').get();
+async function obtenerConfig() {
+  const { rows } = await db.query('SELECT * FROM configuracion_restaurante ORDER BY id LIMIT 1');
+  return rows[0];
 }
 
 /* ------------------------------------------------------------------ */
@@ -44,8 +45,8 @@ function obtenerConfig() {
  * Genera los slots de almuerzo y cena para un día dado y calcula, para cada
  * uno, si hay lugar para `cantidad_personas` sin superar la capacidad total.
  */
-function consultarDisponibilidad({ fecha, cantidad_personas }) {
-  const config = obtenerConfig();
+async function consultarDisponibilidad({ fecha, cantidad_personas }) {
+  const config = await obtenerConfig();
   if (!esISOValido(`${fecha}T00:00`)) {
     return { disponible: false, motivo: 'fecha_invalida', mensaje: 'La fecha no tiene un formato válido (YYYY-MM-DD).' };
   }
@@ -61,12 +62,11 @@ function consultarDisponibilidad({ fecha, cantidad_personas }) {
   }
 
   const duracion = config.duracion_reserva_min;
-  const reservasDelDia = db
-    .prepare(
-      `SELECT fecha_reserva, cantidad_personas FROM reservas
-       WHERE estado != 'cancelada' AND date(fecha_reserva) = date(?)`
-    )
-    .all(`${fecha}T00:00:00`);
+  const { rows: reservasDelDia } = await db.query(
+    `SELECT fecha_reserva, cantidad_personas FROM reservas
+     WHERE estado != 'cancelada' AND fecha_reserva::date = $1::date`,
+    [`${fecha}T00:00:00`]
+  );
 
   function ocupacionEnSlot(slotISO) {
     const slotFin = sumarMinutosISO(slotISO, duracion);
@@ -111,13 +111,12 @@ function consultarDisponibilidad({ fecha, cantidad_personas }) {
 /**
  * 2. ver_reservas_cliente
  */
-function verReservasCliente({ numero_telefono }) {
-  const filas = db
-    .prepare(
-      `SELECT * FROM reservas WHERE numero_telefono = ? AND estado != 'cancelada'
-       ORDER BY fecha_reserva ASC`
-    )
-    .all(numero_telefono);
+async function verReservasCliente({ numero_telefono }) {
+  const { rows: filas } = await db.query(
+    `SELECT * FROM reservas WHERE numero_telefono = $1 AND estado != 'cancelada'
+     ORDER BY fecha_reserva ASC`,
+    [numero_telefono]
+  );
   return {
     cantidad: filas.length,
     reservas: filas.map((r) => ({
@@ -151,15 +150,18 @@ function validarVentanaDeServicio(fechaISO, config) {
   return { ok: true };
 }
 
-/** Suma la ocupación de una ventana [fechaISO, fechaISO+duracion) excluyendo opcionalmente una reserva. */
-function ocupacionEnVentana(fechaISO, duracion, excluirId) {
+/**
+ * Suma la ocupación de una ventana [fechaISO, fechaISO+duracion) excluyendo opcionalmente una
+ * reserva. Recibe un `queryable` (el pool, o un client de transacción) para poder usarse tanto
+ * suelta como dentro de una transacción con lock.
+ */
+async function ocupacionEnVentana(queryable, fechaISO, duracion, excluirId) {
   const fin = sumarMinutosISO(fechaISO, duracion);
-  const reservasDelDia = db
-    .prepare(
-      `SELECT id, fecha_reserva, cantidad_personas FROM reservas
-       WHERE estado != 'cancelada' AND date(fecha_reserva) = date(?)`
-    )
-    .all(fechaISO);
+  const { rows: reservasDelDia } = await queryable.query(
+    `SELECT id, fecha_reserva, cantidad_personas FROM reservas
+     WHERE estado != 'cancelada' AND fecha_reserva::date = $1::date`,
+    [fechaISO]
+  );
   let ocupacion = 0;
   for (const r of reservasDelDia) {
     if (excluirId && r.id === excluirId) continue;
@@ -175,7 +177,7 @@ function ocupacionEnVentana(fechaISO, duracion, excluirId) {
  * 3. agendar_reserva
  */
 async function agendarReserva({ numero_telefono, nombre_cliente, fecha_reserva, cantidad_personas, especificaciones }) {
-  const config = obtenerConfig();
+  const config = await obtenerConfig();
 
   if (!esISOValido(fecha_reserva)) {
     return { exito: false, mensaje: 'La fecha/hora de la reserva no tiene un formato válido.' };
@@ -203,31 +205,36 @@ async function agendarReserva({ numero_telefono, nombre_cliente, fecha_reserva, 
   }
 
   // Re-validación de capacidad justo antes del INSERT (defensa contra condiciones de carrera),
-  // todo dentro de una transacción.
+  // todo dentro de una transacción de Postgres. Usamos un advisory lock transaccional scoped al
+  // día (pg_advisory_xact_lock) para serializar el chequeo-de-capacidad + insert entre pedidos
+  // concurrentes para el mismo día; se libera solo al hacer COMMIT/ROLLBACK.
   let reservaId;
-  const transaccion = db.transaction(() => {
-    const ocupacion = ocupacionEnVentana(fecha_reserva, config.duracion_reserva_min);
+  const client = await db.getClient();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [fecha_reserva.slice(0, 10)]);
+
+    const ocupacion = await ocupacionEnVentana(client, fecha_reserva, config.duracion_reserva_min);
     if (ocupacion + Number(cantidad_personas) > config.capacidad_total) {
       throw new Error('SIN_CAPACIDAD');
     }
-    const resultado = db
-      .prepare(
-        `INSERT INTO reservas (numero_telefono, nombre_cliente, fecha_reserva, cantidad_personas, especificaciones, estado)
-         VALUES (?, ?, ?, ?, ?, 'confirmada')`
-      )
-      .run(
+
+    const { rows } = await client.query(
+      `INSERT INTO reservas (numero_telefono, nombre_cliente, fecha_reserva, cantidad_personas, especificaciones, estado)
+       VALUES ($1, $2, $3, $4, $5, 'confirmada') RETURNING id`,
+      [
         numero_telefono,
         nombre_cliente,
         fecha_reserva,
         cantidad_personas,
-        especificaciones && especificaciones.toLowerCase() !== 'ninguna' ? especificaciones : null
-      );
-    reservaId = resultado.lastInsertRowid;
-  });
+        especificaciones && especificaciones.toLowerCase() !== 'ninguna' ? especificaciones : null,
+      ]
+    );
+    reservaId = rows[0].id;
 
-  try {
-    transaccion();
+    await client.query('COMMIT');
   } catch (err) {
+    await client.query('ROLLBACK');
     if (err.message === 'SIN_CAPACIDAD') {
       return {
         exito: false,
@@ -235,15 +242,18 @@ async function agendarReserva({ numero_telefono, nombre_cliente, fecha_reserva, 
       };
     }
     throw err;
+  } finally {
+    client.release();
   }
 
-  const reserva = db.prepare('SELECT * FROM reservas WHERE id = ?').get(reservaId);
+  const { rows: filasReserva } = await db.query('SELECT * FROM reservas WHERE id = $1', [reservaId]);
+  const reserva = filasReserva[0];
 
   let googleSincronizado = false;
   let errorGoogle = null;
   try {
     const eventId = await googleCalendar.crearEvento(reserva, config);
-    db.prepare('UPDATE reservas SET google_event_id = ? WHERE id = ?').run(eventId, reservaId);
+    await db.query('UPDATE reservas SET google_event_id = $1 WHERE id = $2', [eventId, reservaId]);
     googleSincronizado = true;
   } catch (err) {
     console.warn(`[openai] No se pudo sincronizar la reserva ${reservaId} con Google Calendar:`, err.message);
@@ -265,11 +275,12 @@ async function agendarReserva({ numero_telefono, nombre_cliente, fecha_reserva, 
  * 4. cancelar_reserva
  */
 async function cancelarReserva({ id }) {
-  const reserva = db.prepare('SELECT * FROM reservas WHERE id = ?').get(id);
+  const { rows } = await db.query('SELECT * FROM reservas WHERE id = $1', [id]);
+  const reserva = rows[0];
   if (!reserva) {
     return { exito: false, mensaje: 'No encontré ninguna reserva con ese número.' };
   }
-  db.prepare(`UPDATE reservas SET estado = 'cancelada', actualizado_en = datetime('now','localtime') WHERE id = ?`).run(id);
+  await db.query(`UPDATE reservas SET estado = 'cancelada', actualizado_en = now() WHERE id = $1`, [id]);
 
   if (reserva.google_event_id) {
     try {
@@ -286,11 +297,12 @@ async function cancelarReserva({ id }) {
  * 5. reprogramar_reserva
  */
 async function reprogramarReserva({ id, fecha_reserva, cantidad_personas }) {
-  const reservaActual = db.prepare('SELECT * FROM reservas WHERE id = ?').get(id);
+  const { rows: filasActuales } = await db.query('SELECT * FROM reservas WHERE id = $1', [id]);
+  const reservaActual = filasActuales[0];
   if (!reservaActual) {
     return { exito: false, mensaje: 'No encontré ninguna reserva con ese número.' };
   }
-  const config = obtenerConfig();
+  const config = await obtenerConfig();
 
   const nuevaFecha = fecha_reserva || reservaActual.fecha_reserva;
   const nuevasPersonas = cantidad_personas != null ? cantidad_personas : reservaActual.cantidad_personas;
@@ -309,26 +321,34 @@ async function reprogramarReserva({ id, fecha_reserva, cantidad_personas }) {
     return { exito: false, mensaje: ventana.motivo };
   }
 
-  const transaccion = db.transaction(() => {
-    const ocupacion = ocupacionEnVentana(nuevaFecha, config.duracion_reserva_min, id);
+  const client = await db.getClient();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [nuevaFecha.slice(0, 10)]);
+
+    const ocupacion = await ocupacionEnVentana(client, nuevaFecha, config.duracion_reserva_min, id);
     if (ocupacion + Number(nuevasPersonas) > config.capacidad_total) {
       throw new Error('SIN_CAPACIDAD');
     }
-    db.prepare(
-      `UPDATE reservas SET fecha_reserva = ?, cantidad_personas = ?, actualizado_en = datetime('now','localtime') WHERE id = ?`
-    ).run(nuevaFecha, nuevasPersonas, id);
-  });
 
-  try {
-    transaccion();
+    await client.query(
+      `UPDATE reservas SET fecha_reserva = $1, cantidad_personas = $2, actualizado_en = now() WHERE id = $3`,
+      [nuevaFecha, nuevasPersonas, id]
+    );
+
+    await client.query('COMMIT');
   } catch (err) {
+    await client.query('ROLLBACK');
     if (err.message === 'SIN_CAPACIDAD') {
       return { exito: false, mensaje: 'Ese nuevo horario no tiene lugar disponible. ¿Probamos con otro?' };
     }
     throw err;
+  } finally {
+    client.release();
   }
 
-  const reservaActualizada = db.prepare('SELECT * FROM reservas WHERE id = ?').get(id);
+  const { rows: filasActualizada } = await db.query('SELECT * FROM reservas WHERE id = $1', [id]);
+  const reservaActualizada = filasActualizada[0];
 
   if (reservaActualizada.google_event_id) {
     try {
@@ -347,8 +367,8 @@ async function reprogramarReserva({ id, fecha_reserva, cantidad_personas }) {
 /**
  * 6. obtener_info_restaurante
  */
-function obtenerInfoRestaurante() {
-  const config = obtenerConfig();
+async function obtenerInfoRestaurante() {
+  const config = await obtenerConfig();
   return {
     nombre_restaurante: config.nombre_restaurante,
     direccion: config.direccion,
@@ -471,8 +491,8 @@ const IMPLEMENTACIONES = {
 /* Prompt del sistema                                                   */
 /* ------------------------------------------------------------------ */
 
-function construirSystemPrompt(numeroTelefono) {
-  const config = obtenerConfig();
+async function construirSystemPrompt(numeroTelefono) {
+  const config = await obtenerConfig();
   const hoy = formatearHoyEnEspanol(process.env.TZ_RESTAURANTE || TZ_DEFAULT);
   const tz = process.env.TZ_RESTAURANTE || TZ_DEFAULT;
 
@@ -515,7 +535,7 @@ REGLAS DE CONVERSACIÓN (seguilas al pie de la letra):
  */
 async function generarRespuestaValentina(numeroTelefono, historial) {
   const client = getClient();
-  const systemPrompt = construirSystemPrompt(numeroTelefono);
+  const systemPrompt = await construirSystemPrompt(numeroTelefono);
 
   let mensajes = [{ role: 'system', content: systemPrompt }, ...historial];
 

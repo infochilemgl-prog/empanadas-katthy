@@ -6,32 +6,32 @@ const db = require('../db');
 const router = express.Router();
 
 /** GET /api/mensajes — últimas conversaciones agrupadas por número de teléfono. */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const numeros = db
-      .prepare(
-        `SELECT numero_telefono, MAX(recibido_en) AS ultimo_mensaje_en, COUNT(*) AS cantidad_mensajes
-         FROM mensajes_whatsapp
-         GROUP BY numero_telefono
-         ORDER BY ultimo_mensaje_en DESC`
-      )
-      .all();
+    const { rows: numeros } = await db.query(
+      `SELECT numero_telefono, MAX(recibido_en) AS ultimo_mensaje_en, COUNT(*) AS cantidad_mensajes
+       FROM mensajes_whatsapp
+       GROUP BY numero_telefono
+       ORDER BY ultimo_mensaje_en DESC`
+    );
 
-    const conversaciones = numeros.map((n) => {
-      const ultimo = db
-        .prepare(
+    const conversaciones = await Promise.all(
+      numeros.map(async (n) => {
+        const { rows } = await db.query(
           `SELECT contenido_mensaje, remitente, recibido_en FROM mensajes_whatsapp
-           WHERE numero_telefono = ? ORDER BY recibido_en DESC, id DESC LIMIT 1`
-        )
-        .get(n.numero_telefono);
-      return {
-        numero_telefono: n.numero_telefono,
-        cantidad_mensajes: n.cantidad_mensajes,
-        ultimo_mensaje: ultimo ? ultimo.contenido_mensaje : null,
-        ultimo_remitente: ultimo ? ultimo.remitente : null,
-        ultimo_mensaje_en: n.ultimo_mensaje_en,
-      };
-    });
+           WHERE numero_telefono = $1 ORDER BY recibido_en DESC, id DESC LIMIT 1`,
+          [n.numero_telefono]
+        );
+        const ultimo = rows[0];
+        return {
+          numero_telefono: n.numero_telefono,
+          cantidad_mensajes: Number(n.cantidad_mensajes),
+          ultimo_mensaje: ultimo ? ultimo.contenido_mensaje : null,
+          ultimo_remitente: ultimo ? ultimo.remitente : null,
+          ultimo_mensaje_en: n.ultimo_mensaje_en,
+        };
+      })
+    );
 
     res.json(conversaciones);
   } catch (err) {
@@ -41,13 +41,12 @@ router.get('/', (req, res) => {
 });
 
 /** GET /api/mensajes/:numero — historial completo de un número. */
-router.get('/:numero', (req, res) => {
+router.get('/:numero', async (req, res) => {
   try {
-    const mensajes = db
-      .prepare(
-        `SELECT * FROM mensajes_whatsapp WHERE numero_telefono = ? ORDER BY recibido_en ASC, id ASC`
-      )
-      .all(req.params.numero);
+    const { rows: mensajes } = await db.query(
+      `SELECT * FROM mensajes_whatsapp WHERE numero_telefono = $1 ORDER BY recibido_en ASC, id ASC`,
+      [req.params.numero]
+    );
     res.json(mensajes);
   } catch (err) {
     console.error('[mensajes] Error obteniendo historial:', err);

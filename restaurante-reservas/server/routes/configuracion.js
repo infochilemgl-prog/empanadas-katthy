@@ -25,11 +25,11 @@ const CAMPOS_EDITABLES = [
 ];
 
 /** GET /api/configuracion */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const config = db.prepare('SELECT * FROM configuracion_restaurante ORDER BY id LIMIT 1').get();
-    if (!config) return res.status(404).json({ error: 'No hay configuración cargada.' });
-    res.json(config);
+    const { rows } = await db.query('SELECT * FROM configuracion_restaurante ORDER BY id LIMIT 1');
+    if (!rows[0]) return res.status(404).json({ error: 'No hay configuración cargada.' });
+    res.json(rows[0]);
   } catch (err) {
     console.error('[configuracion] Error obteniendo configuración:', err);
     res.status(500).json({ error: 'No se pudo obtener la configuración.' });
@@ -37,9 +37,10 @@ router.get('/', (req, res) => {
 });
 
 /** PUT /api/configuracion */
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
   try {
-    const actual = db.prepare('SELECT * FROM configuracion_restaurante ORDER BY id LIMIT 1').get();
+    const { rows: filasActuales } = await db.query('SELECT * FROM configuracion_restaurante ORDER BY id LIMIT 1');
+    const actual = filasActuales[0];
     if (!actual) return res.status(404).json({ error: 'No hay configuración cargada.' });
 
     const actualizaciones = {};
@@ -55,14 +56,16 @@ router.put('/', (req, res) => {
     const claves = Object.keys(actualizaciones);
     if (claves.length === 0) return res.status(400).json({ error: 'No se enviaron campos para actualizar.' });
 
-    const set = claves.map((c) => `${c} = ?`).join(', ');
     const valores = claves.map((c) => actualizaciones[c]);
-    db.prepare(
-      `UPDATE configuracion_restaurante SET ${set}, actualizado_en = datetime('now','localtime') WHERE id = ?`
-    ).run(...valores, actual.id);
+    const set = claves.map((c, i) => `${c} = $${i + 1}`).join(', ');
+    valores.push(actual.id);
+    await db.query(
+      `UPDATE configuracion_restaurante SET ${set}, actualizado_en = now() WHERE id = $${valores.length}`,
+      valores
+    );
 
-    const actualizada = db.prepare('SELECT * FROM configuracion_restaurante WHERE id = ?').get(actual.id);
-    res.json(actualizada);
+    const { rows: filasActualizada } = await db.query('SELECT * FROM configuracion_restaurante WHERE id = $1', [actual.id]);
+    res.json(filasActualizada[0]);
   } catch (err) {
     console.error('[configuracion] Error actualizando configuración:', err);
     res.status(500).json({ error: 'No se pudo actualizar la configuración.' });

@@ -10,8 +10,9 @@ const { sumarMinutosISO, TZ_DEFAULT } = require('../utils/fechas');
  * las funciones que llaman a esto deben tolerar ese caso sin explotar,
  * porque las reservas tienen que poder guardarse igual sin Google Calendar.
  */
-function getAuthClient() {
-  const fila = db.prepare('SELECT * FROM google_oauth ORDER BY id DESC LIMIT 1').get();
+async function getAuthClient() {
+  const { rows } = await db.query('SELECT * FROM google_oauth ORDER BY id DESC LIMIT 1');
+  const fila = rows[0];
   if (!fila || !fila.refresh_token) return null;
 
   const oauth2Client = new google.auth.OAuth2(
@@ -29,28 +30,32 @@ function getAuthClient() {
 
   // Cuando la librería refresca el access_token automáticamente, lo persistimos.
   oauth2Client.on('tokens', (tokens) => {
-    try {
-      const actual = db.prepare('SELECT * FROM google_oauth ORDER BY id DESC LIMIT 1').get();
-      if (!actual) return;
-      db.prepare(
-        `UPDATE google_oauth SET
-           access_token = COALESCE(?, access_token),
-           refresh_token = COALESCE(?, refresh_token),
-           expiry_date = COALESCE(?, expiry_date)
-         WHERE id = ?`
-      ).run(tokens.access_token || null, tokens.refresh_token || null, tokens.expiry_date || null, actual.id);
-      console.log('[googleCalendar] Tokens de Google refrescados y persistidos.');
-    } catch (err) {
-      console.warn('[googleCalendar] No se pudo persistir el refresh de tokens:', err.message);
-    }
+    (async () => {
+      try {
+        const { rows: filasActuales } = await db.query('SELECT * FROM google_oauth ORDER BY id DESC LIMIT 1');
+        const actual = filasActuales[0];
+        if (!actual) return;
+        await db.query(
+          `UPDATE google_oauth SET
+             access_token = COALESCE($1, access_token),
+             refresh_token = COALESCE($2, refresh_token),
+             expiry_date = COALESCE($3, expiry_date)
+           WHERE id = $4`,
+          [tokens.access_token || null, tokens.refresh_token || null, tokens.expiry_date || null, actual.id]
+        );
+        console.log('[googleCalendar] Tokens de Google refrescados y persistidos.');
+      } catch (err) {
+        console.warn('[googleCalendar] No se pudo persistir el refresh de tokens:', err.message);
+      }
+    })();
   });
 
   return oauth2Client;
 }
 
-function getCalendarId() {
-  const fila = db.prepare('SELECT calendar_id FROM google_oauth ORDER BY id DESC LIMIT 1').get();
-  return (fila && fila.calendar_id) || 'primary';
+async function getCalendarId() {
+  const { rows } = await db.query('SELECT calendar_id FROM google_oauth ORDER BY id DESC LIMIT 1');
+  return (rows[0] && rows[0].calendar_id) || 'primary';
 }
 
 function construirEvento(reserva, configRestaurante) {
@@ -69,14 +74,15 @@ function construirEvento(reserva, configRestaurante) {
 
 /** Crea un evento en Google Calendar para una reserva. Lanza si no hay cuenta conectada. */
 async function crearEvento(reserva, configRestaurante) {
-  const auth = getAuthClient();
+  const auth = await getAuthClient();
   if (!auth) {
     throw new Error('Google Calendar no está conectado (no hay tokens guardados).');
   }
   const calendar = google.calendar({ version: 'v3', auth });
   const evento = construirEvento(reserva, configRestaurante);
+  const calendarId = await getCalendarId();
   const respuesta = await calendar.events.insert({
-    calendarId: getCalendarId(),
+    calendarId,
     requestBody: evento,
   });
   return respuesta.data.id;
@@ -84,14 +90,15 @@ async function crearEvento(reserva, configRestaurante) {
 
 /** Actualiza un evento existente. Lanza si no hay cuenta conectada. */
 async function actualizarEvento(googleEventId, reserva, configRestaurante) {
-  const auth = getAuthClient();
+  const auth = await getAuthClient();
   if (!auth) {
     throw new Error('Google Calendar no está conectado (no hay tokens guardados).');
   }
   const calendar = google.calendar({ version: 'v3', auth });
   const evento = construirEvento(reserva, configRestaurante);
+  const calendarId = await getCalendarId();
   await calendar.events.update({
-    calendarId: getCalendarId(),
+    calendarId,
     eventId: googleEventId,
     requestBody: evento,
   });
@@ -99,14 +106,15 @@ async function actualizarEvento(googleEventId, reserva, configRestaurante) {
 
 /** Borra un evento. Tolera 404/410 (evento ya no existe) sin lanzar. */
 async function borrarEvento(googleEventId) {
-  const auth = getAuthClient();
+  const auth = await getAuthClient();
   if (!auth) {
     console.warn('[googleCalendar] Se pidió borrar un evento pero Google no está conectado.');
     return;
   }
   const calendar = google.calendar({ version: 'v3', auth });
+  const calendarId = await getCalendarId();
   try {
-    await calendar.events.delete({ calendarId: getCalendarId(), eventId: googleEventId });
+    await calendar.events.delete({ calendarId, eventId: googleEventId });
   } catch (err) {
     const status = err && err.code ? err.code : err && err.response && err.response.status;
     if (status === 404 || status === 410) {
