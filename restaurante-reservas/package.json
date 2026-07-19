@@ -1,0 +1,29 @@
+{
+  "name": "restaurante-reservas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de reservas por WhatsApp con IA (Valentina) para restaurantes",
+  "type": "commonjs",
+  "scripts": {
+    "setup": "npm install && cd client && npm install",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "nodemon server/index.js",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "NODE_ENV=production node server/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "googleapis": "^144.0.0",
+    "openai": "^4.63.0",
+    "twilio": "^5.3.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "nodemon": "^3.1.4"
+  }
+}
