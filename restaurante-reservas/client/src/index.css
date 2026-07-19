@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --terracota: #b4513a;
+  --ocre: #c68a3b;
+  --oliva: #6b7f3f;
+  --crema: #f7f1e5;
+  --carbon: #2a2522;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: var(--crema);
+  color: var(--carbon);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--ocre);
+  color: white;
+}
+
+.transition-smooth {
+  transition: all 0.2s ease-in-out;
+}
